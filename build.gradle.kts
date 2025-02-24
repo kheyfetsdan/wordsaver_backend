@@ -1,4 +1,3 @@
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
@@ -33,4 +32,5 @@ dependencies {
     implementation(libs.exposed.jdbc)
     implementation("com.h2database:h2:2.2.224")
     //implementation("org.jetbrains.exposed:exposed-dao")
+    implementation("org.jetbrains.exposed:exposed-java-time:${libs.versions.exposed.get()}")
 }

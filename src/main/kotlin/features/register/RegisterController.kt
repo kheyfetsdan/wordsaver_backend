@@ -4,7 +4,7 @@ import com.wordsaver.features.database.tokens.Tokens
 import com.wordsaver.features.database.tokens.TokensDto
 import com.wordsaver.features.database.users.UserDto
 import com.wordsaver.features.database.users.Users
-import com.wordsaver.utils.isValidEmail
+import com.wordsaver.utils.isEmailBroken
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -16,10 +16,10 @@ class RegisterController(private val call: ApplicationCall) {
 
     suspend fun registerNewUser() {
         val registerReceiveRemote = call.receive<RegisterReceiveRemote>()
-        if (!registerReceiveRemote.email.isValidEmail()) {
+        if (registerReceiveRemote.email.isEmailBroken()) {
             call.respond(HttpStatusCode.BadRequest, "Email is not valid")
         }
-        val userDto = Users.fetchUser(registerReceiveRemote.login)
+        val userDto = Users.fetchUser(registerReceiveRemote.username)
 
         if (userDto != null) {
             call.respond(HttpStatusCode.Conflict, "User already Exist")
@@ -29,10 +29,9 @@ class RegisterController(private val call: ApplicationCall) {
             try {
                 Users.insert(
                     UserDto(
-                        login = registerReceiveRemote.login,
+                        username = registerReceiveRemote.username,
                         email = registerReceiveRemote.email,
-                        password = registerReceiveRemote.password,
-                        username = ""
+                        password = registerReceiveRemote.password
                     )
                 )
             } catch (e: ExposedSQLException) {
@@ -43,7 +42,7 @@ class RegisterController(private val call: ApplicationCall) {
             Tokens.insert(
                 TokensDto(
                     id = UUID.randomUUID().toString(),
-                    login = registerReceiveRemote.login,
+                    login = registerReceiveRemote.email,
                     token = token
                 )
             )
@@ -51,6 +50,4 @@ class RegisterController(private val call: ApplicationCall) {
             call.respond(RegisterResponseRemote(token = token))
         }
     }
-
-
 }
