@@ -1,8 +1,6 @@
 package com.wordsaver.features.register
 
-import com.wordsaver.features.database.base.insertIntoTable
-import com.wordsaver.features.database.tokens.Tokens
-import com.wordsaver.features.database.tokens.TokensDto
+import com.wordsaver.features.auth.AuthConfig
 import com.wordsaver.features.database.users.UserDto
 import com.wordsaver.features.database.users.Users
 import com.wordsaver.utils.isEmailBroken
@@ -10,38 +8,34 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import org.jetbrains.exposed.exceptions.ExposedSQLException
-import java.util.*
 
 class RegisterController(private val call: ApplicationCall) {
-
     suspend fun registerNewUser() {
-        val registerReceiveRemote = call.receive<RegisterReceiveRemote>()
-        if (registerReceiveRemote.email.isEmailBroken()) {
+        val receive = call.receive<RegisterReceiveRemote>()
+        
+        if (receive.email.isEmailBroken()) {
             call.respond(HttpStatusCode.BadRequest, "Email is not valid")
+            return
         }
-        val userDto = Users.fetchUser(registerReceiveRemote.username)
 
-        if (userDto != null) {
-            call.respond(HttpStatusCode.Conflict, "User already Exist")
-        } else {
-            val token = UUID.randomUUID().toString()
+        if (Users.fetchUser(receive.email) != null) {
+            call.respond(HttpStatusCode.Conflict, "User already exists")
+            return
+        }
 
-            try {
-                insertIntoTable(Users, registerReceiveRemote)
-            } catch (e: ExposedSQLException) {
-                call.respond(HttpStatusCode.Conflict, "User already Exist")
-            }
-
-            val tokenDto = TokensDto(
-                id = UUID.randomUUID().toString(),
-                login = registerReceiveRemote.email,
-                token = token
+        try {
+            Users.insert(
+                UserDto(
+                    email = receive.email,
+                    password = receive.password,
+                    username = receive.username
+                )
             )
 
-            insertIntoTable(Tokens, tokenDto)
-
+            val token = AuthConfig.generateToken(receive.email)
             call.respond(RegisterResponseRemote(token = token))
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.InternalServerError, "Failed to register user")
         }
     }
 }

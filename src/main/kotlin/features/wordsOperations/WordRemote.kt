@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class WordReceiveRemote(
     val word: String,
     val translation: String,
-    val userId: String,
+    val userEmail: String,
     val failed: Double,
     val success: Double
 )
@@ -20,7 +20,7 @@ data class SuccessSaveResponse(
 data class WordResponseRemote(
     val word: String,
     val translation: String,
-    val userId: String,
+    val userEmail: String,
     val failed: Double,
     val success: Double,
     val addedAt: String
@@ -29,11 +29,11 @@ data class WordResponseRemote(
 @Serializable
 data class GetWordRequest(
     val word: String,
-    val userId: String
+    val userEmail: String
 )
 
 @Serializable
 data class GetWordsByUserRequest(
-    val userId: String
+    val userEmail: String
 )
 

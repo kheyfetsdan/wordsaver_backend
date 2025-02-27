@@ -1,28 +1,35 @@
 package com.wordsaver.features.database.users
 
+import com.wordsaver.features.auth.AuthConfig
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.javatime.datetime
-import java.time.LocalDateTime
 
 object Users : Table("users_main") {
     private val id = integer("id").autoIncrement()
-    private val username = varchar("username", 50)
     private val email = varchar("email", 100)
-    private val password = varchar("password", 255)
-    private val createdAt = datetime("created_at").default(LocalDateTime.now())
+    private val password = varchar("password", 255) // Увеличиваем размер для хешированного пароля
+    private val username = varchar("username", 50)
 
     override val primaryKey = PrimaryKey(id)
 
-    fun fetchUser(userEmail: String): UserDto? {
+    fun insert(userDto: UserDto) {
+        transaction {
+            Users.insert {
+                it[email] = userDto.email
+                it[password] = AuthConfig.hashPassword(userDto.password)
+                it[username] = userDto.username
+            }
+        }
+    }
+
+    fun fetchUser(email: String): UserDto? {
         return try {
             transaction {
-                addLogger(StdOutSqlLogger)
-                val userModel = Users.selectAll().where { Users.email eq(userEmail) }.single()
+                val userModel = Users.selectAll().where { Users.email eq email }.single()
                 UserDto(
-                    username = userModel[username],
-                    email = userModel[email],
-                    password = userModel[password]
+                    email = userModel[Users.email],
+                    password = userModel[password],
+                    username = userModel[username]
                 )
             }
         } catch (e: Exception) {
