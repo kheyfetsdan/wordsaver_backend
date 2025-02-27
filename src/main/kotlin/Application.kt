@@ -7,6 +7,8 @@ import com.wordsaver.features.register.configureRegisterRouting
 import com.wordsaver.features.wordsOperations.configureWordRouting
 import com.wordsaver.plugins.configureRouting
 import com.wordsaver.plugins.configureSerialization
+import com.wordsaver.plugins.configureSecurity
+import com.wordsaver.plugins.configureStatusPages
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import org.jetbrains.exposed.sql.Database
@@ -15,6 +17,7 @@ import org.jetbrains.exposed.sql.exists
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun main() {
+
     Database.connect(
         "jdbc:postgresql://localhost:5432/wordsaver",
         driver = "org.postgresql.Driver",
@@ -41,6 +44,8 @@ fun main() {
     }
 
     embeddedServer(CIO, port = 8080, host = "0.0.0.0") {
+        configureStatusPages()
+        configureSecurity()
         configureRouting()
         configureLoginRouting()
         configureRegisterRouting()
