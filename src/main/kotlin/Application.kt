@@ -1,8 +1,10 @@
 package com.wordsaver
 
 import com.wordsaver.features.database.users.Users
+import com.wordsaver.features.database.words.Words
 import com.wordsaver.features.login.configureLoginRouting
 import com.wordsaver.features.register.configureRegisterRouting
+import com.wordsaver.features.wordsOperations.configureWordRouting
 import com.wordsaver.plugins.configureRouting
 import com.wordsaver.plugins.configureSerialization
 import io.ktor.server.cio.*
@@ -29,6 +31,13 @@ fun main() {
         } else {
             println("Таблица '${Users.tableName}' уже существует.")
         }
+        if (!Words.exists()) {
+            // Создание таблицы, если она не существует
+            SchemaUtils.create(Words)
+            println("Таблица '${Words.tableName}' создана.")
+        } else {
+            println("Таблица '${Words.tableName}' уже существует.")
+        }
     }
 
     embeddedServer(CIO, port = 8080, host = "0.0.0.0") {
@@ -36,6 +45,7 @@ fun main() {
         configureLoginRouting()
         configureRegisterRouting()
         configureSerialization()
+        configureWordRouting()
     }.start(wait = true)
 
 }

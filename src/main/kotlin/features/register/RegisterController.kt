@@ -1,5 +1,6 @@
 package com.wordsaver.features.register
 
+import com.wordsaver.features.database.base.insertIntoTable
 import com.wordsaver.features.database.tokens.Tokens
 import com.wordsaver.features.database.tokens.TokensDto
 import com.wordsaver.features.database.users.UserDto
@@ -27,25 +28,18 @@ class RegisterController(private val call: ApplicationCall) {
             val token = UUID.randomUUID().toString()
 
             try {
-                Users.insert(
-                    UserDto(
-                        username = registerReceiveRemote.username,
-                        email = registerReceiveRemote.email,
-                        password = registerReceiveRemote.password
-                    )
-                )
+                insertIntoTable(Users, registerReceiveRemote)
             } catch (e: ExposedSQLException) {
                 call.respond(HttpStatusCode.Conflict, "User already Exist")
             }
 
-
-            Tokens.insert(
-                TokensDto(
-                    id = UUID.randomUUID().toString(),
-                    login = registerReceiveRemote.email,
-                    token = token
-                )
+            val tokenDto = TokensDto(
+                id = UUID.randomUUID().toString(),
+                login = registerReceiveRemote.email,
+                token = token
             )
+
+            insertIntoTable(Tokens, tokenDto)
 
             call.respond(RegisterResponseRemote(token = token))
         }
