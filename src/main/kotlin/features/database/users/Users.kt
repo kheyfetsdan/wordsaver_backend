@@ -14,16 +14,6 @@ object Users : Table("users_main") {
 
     override val primaryKey = PrimaryKey(id)
 
-    fun insert(userDto: UserDto) {
-        transaction {
-            Users.insert {
-                it[username] = userDto.username
-                it[password] = userDto.password
-                it[email] = userDto.email
-            }
-        }
-    }
-
     fun fetchUser(userEmail: String): UserDto? {
         return try {
             transaction {
