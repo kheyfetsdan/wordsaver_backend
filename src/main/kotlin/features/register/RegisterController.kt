@@ -27,8 +27,7 @@ class RegisterController(private val call: ApplicationCall) {
             Users.insert(
                 UserDto(
                     email = receive.email,
-                    password = receive.password,
-                    username = receive.username
+                    password = receive.password
                 )
             )
 
