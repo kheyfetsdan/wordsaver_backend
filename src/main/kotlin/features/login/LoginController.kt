@@ -10,7 +10,7 @@ import io.ktor.server.response.*
 class LoginController(private val call: ApplicationCall) {
     suspend fun performLogin() {
         val receive = call.receive<LoginReceiveRemote>()
-        val userDto = Users.fetchUser(receive.email)
+        val userDto = Users.fetchUserDto(receive.email)
 
         if (userDto == null) {
             call.respond(HttpStatusCode.BadRequest, "User not found")

@@ -1,7 +1,6 @@
 package com.wordsaver.features.database.users
 
 import com.wordsaver.features.auth.AuthConfig
-import com.wordsaver.features.database.words.Words.default
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -24,7 +23,7 @@ object Users : Table("users_main") {
         }
     }
 
-    fun fetchUser(email: String): UserDto? {
+    fun fetchUserDto(email: String): UserDto? {
         return try {
             transaction {
                 val userModel = Users.selectAll().where { Users.email eq email }.single()
@@ -32,6 +31,16 @@ object Users : Table("users_main") {
                     email = userModel[Users.email],
                     password = userModel[password]
                 )
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun fetchUserId(email: String): Int? {
+        return try {
+            transaction {
+                Users.selectAll().where { Users.email eq email }.single()[Users.id]
             }
         } catch (e: Exception) {
             null

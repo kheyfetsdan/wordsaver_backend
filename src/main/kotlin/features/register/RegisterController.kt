@@ -18,7 +18,7 @@ class RegisterController(private val call: ApplicationCall) {
             return
         }
 
-        if (Users.fetchUser(receive.email) != null) {
+        if (Users.fetchUserDto(receive.email) != null) {
             call.respond(HttpStatusCode.Conflict, "User already exists")
             return
         }
