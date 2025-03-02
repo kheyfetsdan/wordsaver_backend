@@ -13,6 +13,13 @@ import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.auth0.jwt.exceptions.JWTVerificationException
+import com.wordsaver.features.database.users.Users
+import com.wordsaver.features.database.words.WordDto
+import com.wordsaver.features.database.words.Words.addedAt
+import com.wordsaver.features.database.words.Words.failed
+import com.wordsaver.features.database.words.Words.success
+import com.wordsaver.features.database.words.Words.translation
+import com.wordsaver.features.database.words.Words.word
 
 class WordController(private val call: ApplicationCall) {
 
@@ -24,18 +31,25 @@ class WordController(private val call: ApplicationCall) {
 
     suspend fun saveNewWord() {
         try {
-            val userEmail = getUserEmailFromToken()
+            val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
             val wordReceiveRemote = call.receive<WordReceiveRemote>()// Используем email из токена вместо userId из запроса
 
-            val wordDto = Words.fetchWord(
+            val searchedWord = Words.fetchWord(
                 userWord = wordReceiveRemote.word,
-                _userEmail = userEmail
+                _userId = userId
             )
-            if (wordDto != null) {
+            val wordDto = WordDto(
+                word = wordReceiveRemote.word,
+                translation = wordReceiveRemote.translation,
+                userId = userId,
+                failed = wordReceiveRemote.failed,
+                success = wordReceiveRemote.success
+            )
+            if (searchedWord != null) {
                 call.respond(HttpStatusCode.Conflict, "Word already exists")
             } else {
                 try {
-                    insertIntoTable(Words, wordReceiveRemote)
+                    insertIntoTable(Words, wordDto)
                     call.respond(SuccessSaveResponse("Saved"))
                 } catch (e: ExposedSQLException) {
                     call.respond(HttpStatusCode.Conflict, "Word already exists")
@@ -55,18 +69,14 @@ class WordController(private val call: ApplicationCall) {
 
     suspend fun getWord() {
         try {
-            val userEmail = getUserEmailFromToken()
+            val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
             val request = call.receive<GetWordRequest>()
-            
-            if (request.userEmail != userEmail) {
-                call.respond(HttpStatusCode.Forbidden, "Access denied")
-                return
-            }
+            //val token = call.request.header("Authorization")?.removePrefix("Bearer ")
 
             // Выполняем запрос к базе данных
             val wordModel = transaction {
                 Words.selectAll().where {
-                    (Words.word eq request.word) and (Words.userEmail eq request.userEmail)
+                    (Words.word eq request.word) and (Words.userId eq userId)
                 }.singleOrNull()
             }
 
@@ -75,7 +85,6 @@ class WordController(private val call: ApplicationCall) {
                 val response = WordResponseRemote(
                     word = wordModel[Words.word],
                     translation = wordModel[Words.translation],
-                    userEmail = wordModel[Words.userEmail],
                     failed = wordModel[Words.failed],
                     success = wordModel[Words.success],
                     addedAt = wordModel[Words.addedAt].toString() // Преобразуем LocalDateTime в строку
@@ -99,26 +108,19 @@ class WordController(private val call: ApplicationCall) {
 
     suspend fun getWords() {
         try {
-            val userEmail = getUserEmailFromToken()
-            val request = call.receive<GetWordsByUserRequest>()
-            
-            if (request.userEmail != userEmail) {
-                call.respond(HttpStatusCode.Forbidden, "Access denied")
-                return
-            }
+            val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
 
             // Выполняем запрос к базе данных
             val words = transaction {
                 Words.selectAll().where {
-                    Words.userEmail eq request.userEmail // Ищем все слова по userId
+                    Words.userId eq userId // Ищем все слова по userId
                 }.map { row ->
                     WordResponseRemote(
-                        word = row[Words.word],
-                        translation = row[Words.translation],
-                        userEmail = row[Words.userEmail],
-                        failed = row[Words.failed],
-                        success = row[Words.success],
-                        addedAt = row[Words.addedAt].toString() // Преобразуем LocalDateTime в строку
+                        word = row[word],
+                        translation = row[translation],
+                        failed = row[failed],
+                        success = row[success],
+                        addedAt = row[addedAt].toString() // Преобразуем LocalDateTime в строку
                     )
                 }
             }

@@ -6,6 +6,7 @@ import kotlin.reflect.full.memberProperties
 
 inline fun <reified T : Any> insertIntoTable(table: Table, dto: T) {
     transaction {
+        addLogger(StdOutSqlLogger)
         table.insert { row ->
             for (property in T::class.memberProperties) {
                 val column = table.columns.find { it.name == property.name }
