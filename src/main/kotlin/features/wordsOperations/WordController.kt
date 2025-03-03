@@ -42,8 +42,8 @@ class WordController(private val call: ApplicationCall) {
                 word = wordReceiveRemote.word,
                 translation = wordReceiveRemote.translation,
                 userId = userId,
-                failed = wordReceiveRemote.failed,
-                success = wordReceiveRemote.success
+                failed = 0.0,
+                success = 0.0
             )
             if (searchedWord != null) {
                 call.respond(HttpStatusCode.Conflict, "Word already exists")

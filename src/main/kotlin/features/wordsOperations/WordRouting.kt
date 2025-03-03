@@ -8,17 +8,17 @@ import io.ktor.server.routing.*
 fun Application.configureWordRouting() {
     routing {
         authenticate {
-            post("/saveWord") {
+            post("/save-word") {
                 val wordController = WordController(call)
                 wordController.saveNewWord()
             }
 
-            post("/get_word") {
+            post("/get-word") {
                 val wordController = WordController(call)
                 wordController.getWord()
             }
 
-            post("/get_words_by_user") {
+            post("/get-words-by-user") {
                 val wordController = WordController(call)
                 wordController.getWords()
             }

@@ -6,8 +6,6 @@ import kotlinx.serialization.Serializable
 data class WordReceiveRemote(
     val word: String,
     val translation: String,
-    val failed: Double,
-    val success: Double
 )
 
 @Serializable
