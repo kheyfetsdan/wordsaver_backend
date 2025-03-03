@@ -1,7 +1,6 @@
 package com.wordsaver.features.database.words
 
-
-
+import com.sun.tools.javac.util.Log
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -23,7 +22,7 @@ object Words : Table("words") {
             transaction {
                 addLogger(StdOutSqlLogger)
                 val wordModel = Words.selectAll().where {
-                    (Words.word eq(userWord)) and (userId eq(_userId)) }
+                    (word eq (userWord.lowercase())) and (userId eq (_userId)) }
                     .single()
                 WordDto(
                     word = wordModel[word],
