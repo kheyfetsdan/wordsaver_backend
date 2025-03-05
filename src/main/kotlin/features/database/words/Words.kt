@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 
 object Words : Table("words") {
-    private val id = integer("id").autoIncrement()
+    val id = integer("id").autoIncrement()
     val word = varchar("word", 100)
     val translation = varchar("translation", 100)
     val userId = varchar("userId", 100)
