@@ -9,8 +9,6 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import org.jetbrains.exposed.exceptions.ExposedSQLException
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.wordsaver.features.database.users.Users
@@ -20,19 +18,22 @@ import com.wordsaver.features.database.words.Words.failed
 import com.wordsaver.features.database.words.Words.success
 import com.wordsaver.features.database.words.Words.translation
 import com.wordsaver.features.database.words.Words.word
+import org.jetbrains.exposed.sql.*
+import kotlin.random.Random
 
 class WordController(private val call: ApplicationCall) {
 
     private fun getUserEmailFromToken(): String {
         val principal = call.principal<JWTPrincipal>()
-        return principal?.payload?.subject 
+        return principal?.payload?.subject
             ?: throw IllegalStateException("No user email in token")
     }
 
     suspend fun saveNewWord() {
         try {
             val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
-            val wordReceiveRemote = call.receive<WordReceiveRemote>()// Используем email из токена вместо userId из запроса
+            val wordReceiveRemote =
+                call.receive<WordReceiveRemote>()// Используем email из токена вместо userId из запроса
 
             val searchedWord = Words.fetchWord(
                 userWord = wordReceiveRemote.word,
@@ -57,10 +58,10 @@ class WordController(private val call: ApplicationCall) {
             }
         } catch (e: Exception) {
             when (e) {
-                is IllegalStateException, 
+                is IllegalStateException,
                 is JWTVerificationException -> throw e // Пробрасываем дальше для обработки в StatusPages
                 else -> call.respond(
-                    HttpStatusCode.InternalServerError, 
+                    HttpStatusCode.InternalServerError,
                     "An error occurred: ${e.message}"
                 )
             }
@@ -73,10 +74,24 @@ class WordController(private val call: ApplicationCall) {
             val request = call.receive<GetWordRequest>()
             //val token = call.request.header("Authorization")?.removePrefix("Bearer ")
 
+            val randomWord = transaction {
+                Words.select(word).where {
+                    (Words.userId eq userId)
+                }.toList()
+            }
+            println(randomWord)
+
+            if (randomWord.isEmpty()) {
+                call.respond(HttpStatusCode.NotFound, "No words exist")
+            }
+            val randomIndex = Random.nextInt(randomWord.size)
+            val rWord = randomWord[randomIndex][word]
+
             // Выполняем запрос к базе данных
             val wordModel = transaction {
+                addLogger(StdOutSqlLogger)
                 Words.selectAll().where {
-                    (Words.word eq request.word) and (Words.userId eq userId)
+                    ((Words.userId eq userId) and (Words.word eq rWord))
                 }.singleOrNull()
             }
 
@@ -96,10 +111,11 @@ class WordController(private val call: ApplicationCall) {
             }
         } catch (e: Exception) {
             when (e) {
-                is IllegalStateException, 
+                is IllegalStateException,
                 is JWTVerificationException -> throw e
+
                 else -> call.respond(
-                    HttpStatusCode.InternalServerError, 
+                    HttpStatusCode.InternalServerError,
                     "An error occurred: ${e.message}"
                 )
             }
@@ -134,10 +150,11 @@ class WordController(private val call: ApplicationCall) {
             }
         } catch (e: Exception) {
             when (e) {
-                is IllegalStateException, 
+                is IllegalStateException,
                 is JWTVerificationException -> throw e
+
                 else -> call.respond(
-                    HttpStatusCode.InternalServerError, 
+                    HttpStatusCode.InternalServerError,
                     "An error occurred: ${e.message}"
                 )
             }

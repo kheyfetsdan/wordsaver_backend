@@ -23,9 +23,7 @@ data class WordResponseRemote(
 )
 
 @Serializable
-data class GetWordRequest(
-    val word: String,
-)
+class GetWordRequest
 
 @Serializable
 data class GetWordsByUserRequest(
