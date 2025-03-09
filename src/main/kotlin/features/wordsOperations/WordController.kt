@@ -15,6 +15,7 @@ import com.wordsaver.features.database.users.Users
 import com.wordsaver.features.database.words.WordDto
 import com.wordsaver.features.database.words.Words.addedAt
 import com.wordsaver.features.database.words.Words.failed
+import com.wordsaver.features.database.words.Words.id
 import com.wordsaver.features.database.words.Words.success
 import com.wordsaver.features.database.words.Words.translation
 import com.wordsaver.features.database.words.Words.word
@@ -71,7 +72,6 @@ class WordController(private val call: ApplicationCall) {
     suspend fun getWord() {
         try {
             val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
-            val request = call.receive<GetWordRequest>()
             //val token = call.request.header("Authorization")?.removePrefix("Bearer ")
 
             val randomWord = transaction {
@@ -98,6 +98,7 @@ class WordController(private val call: ApplicationCall) {
             // Если слово найдено, возвращаем его
             if (wordModel != null) {
                 val response = WordResponseRemote(
+                    id = wordModel[id],
                     word = wordModel[Words.word],
                     translation = wordModel[Words.translation],
                     failed = wordModel[Words.failed],
@@ -125,13 +126,31 @@ class WordController(private val call: ApplicationCall) {
     suspend fun getWords() {
         try {
             val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+            val request = call.receive<GetWordsRequest>()
 
             // Выполняем запрос к базе данных
+            //SELECT * FROM your_glorious_table WHERE <glorious_filters> LIMIT <page_size> OFFSET <(page_number - 1) * page_size>
             val words = transaction {
                 Words.selectAll().where {
                     Words.userId eq userId // Ищем все слова по userId
-                }.map { row ->
+                }
+                    .orderBy(
+                        when(request.sortingParam) {
+                            "word" -> word
+                            "failed" -> failed
+                            "success" -> success
+                            else -> word
+                        },
+                        when(request.sortingDirection) {
+                            "asc" -> SortOrder.ASC
+                            "desc" -> SortOrder.DESC
+                            else -> SortOrder.ASC
+                        })
+                    .limit(request.pageSize)
+                    .offset(((request.page - 1) * request.pageSize).toLong())
+                    .map { row ->
                     WordResponseRemote(
+                        id = row[Words.id],
                         word = row[word],
                         translation = row[translation],
                         failed = row[failed],
@@ -141,13 +160,27 @@ class WordController(private val call: ApplicationCall) {
                 }
             }
 
-            // Возвращаем список слов
-            if (words.isNotEmpty()) {
-                call.respond(words)
-            } else {
-                // Если слова не найдены, возвращаем 404
-                call.respond(HttpStatusCode.NotFound, "No words found for this user")
+            var wordsSize = 0
+            try {
+                wordsSize = transaction {
+                    addLogger(StdOutSqlLogger)
+                    Words.select(word).where {
+                        Words.userId eq userId // Ищем все слова по userId
+                }.count().toInt()
             }
+                println(wordsSize)
+            } catch (e: Exception) {
+                println(e)
+            }
+
+            val resp = WordList(
+                wordList = words,
+                total = wordsSize.toInt(),
+                page = request.page
+            )
+
+            // Возвращаем список слов
+            call.respond(resp)
         } catch (e: Exception) {
             when (e) {
                 is IllegalStateException,
