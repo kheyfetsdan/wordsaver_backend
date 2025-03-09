@@ -1,6 +1,8 @@
 package com.wordsaver.features.wordsOperations
 
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.Expression
 
 @Serializable
 data class WordReceiveRemote(
@@ -15,6 +17,7 @@ data class SuccessSaveResponse(
 
 @Serializable
 data class WordResponseRemote(
+    val id: Int,
     val word: String,
     val translation: String,
     val failed: Double,
@@ -23,7 +26,19 @@ data class WordResponseRemote(
 )
 
 @Serializable
-class GetWordRequest
+data class WordList(
+    val wordList: List<WordResponseRemote>,
+    val total: Int,
+    val page: Int
+)
+
+@Serializable
+class GetWordsRequest(
+    val sortingParam: String,
+    val sortingDirection: String,
+    val page: Int,
+    val pageSize: Int
+)
 
 @Serializable
 data class GetWordsByUserRequest(
