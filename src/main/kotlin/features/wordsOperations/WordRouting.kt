@@ -27,6 +27,16 @@ fun Application.configureWordRouting() {
                 val wordController = WordController(call)
                 wordController.getWordById()
             }
+
+            put("/word") {
+                val wordController = WordController(call)
+                wordController.updateWord()
+            }
+
+            delete("/delete-word/{id}") {
+                val wordController = WordController(call)
+                wordController.deleteWord()
+            }
         }
     }
 }
