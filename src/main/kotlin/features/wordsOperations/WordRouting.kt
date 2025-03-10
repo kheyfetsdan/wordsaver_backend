@@ -22,6 +22,11 @@ fun Application.configureWordRouting() {
                 val wordController = WordController(call)
                 wordController.getWords()
             }
+
+            get("/word/{id}") {
+                val wordController = WordController(call)
+                wordController.getWordById()
+            }
         }
     }
 }

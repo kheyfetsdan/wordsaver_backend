@@ -19,6 +19,7 @@ import com.wordsaver.features.database.words.Words.id
 import com.wordsaver.features.database.words.Words.success
 import com.wordsaver.features.database.words.Words.translation
 import com.wordsaver.features.database.words.Words.word
+import io.ktor.client.utils.EmptyContent.status
 import org.jetbrains.exposed.sql.*
 import kotlin.random.Random
 
@@ -191,6 +192,37 @@ class WordController(private val call: ApplicationCall) {
                     "An error occurred: ${e.message}"
                 )
             }
+        }
+    }
+
+    suspend fun getWordById() {
+        val id = call.parameters["id"]?: "No ID"
+        val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+        println(id)
+        println(userId)
+
+        val word = transaction {
+            addLogger(StdOutSqlLogger)
+            Words.selectAll().where {
+                ((Words.userId eq userId) and (Words.id eq id.toInt()))
+            }.singleOrNull()
+        }
+
+        if (word != null) {
+            val response = WordResponseRemote(
+                id = word[Words.id],
+                word = word[Words.word],
+                translation = word[translation],
+                failed = word[failed],
+                success = word[success],
+                addedAt = word[addedAt].toString()
+            )
+            call.respond(response)
+        } else {
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                "An error occurred"
+            )
         }
     }
 }
