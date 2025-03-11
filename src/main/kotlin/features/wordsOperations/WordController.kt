@@ -19,7 +19,9 @@ import com.wordsaver.features.database.words.Words.id
 import com.wordsaver.features.database.words.Words.success
 import com.wordsaver.features.database.words.Words.translation
 import com.wordsaver.features.database.words.Words.word
+import io.ktor.client.utils.EmptyContent.status
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import kotlin.random.Random
 
 class WordController(private val call: ApplicationCall) {
@@ -191,6 +193,84 @@ class WordController(private val call: ApplicationCall) {
                     "An error occurred: ${e.message}"
                 )
             }
+        }
+    }
+
+    suspend fun getWordById() {
+        val id = call.parameters["id"]?: "No ID"
+        val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+        println(id)
+        println(userId)
+
+        val word = transaction {
+            addLogger(StdOutSqlLogger)
+            Words.selectAll().where {
+                ((Words.userId eq userId) and (Words.id eq id.toInt()))
+            }.singleOrNull()
+        }
+
+        if (word != null) {
+            val response = WordResponseRemote(
+                id = word[Words.id],
+                word = word[Words.word],
+                translation = word[translation],
+                failed = word[failed],
+                success = word[success],
+                addedAt = word[addedAt].toString()
+            )
+            call.respond(response)
+        } else {
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                "An error occurred"
+            )
+        }
+    }
+
+    suspend fun updateWord() {
+        val wordReceiveRemote = call.receive<WordIdReceiveRemote>()
+        val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+
+        try {
+            transaction {
+                addLogger(StdOutSqlLogger)
+                Words.update({ (Words.id eq wordReceiveRemote.id) and (Words.userId eq userId) }) {
+                    it[Words.word] = wordReceiveRemote.word
+                    it[Words.translation] = wordReceiveRemote.translation
+                }
+            }
+            call.respond(
+                HttpStatusCode.OK,
+                "Word updated"
+            )
+        } catch (e: Exception) {
+            println(e)
+            call.respond(
+                HttpStatusCode.NotFound,
+                "Word not found"
+            )
+        }
+    }
+
+    suspend fun deleteWord() {
+        val id = call.parameters["id"]?: "No ID"
+        val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+
+        try {
+            transaction {
+                addLogger(StdOutSqlLogger)
+                Words.deleteWhere { (Words.id eq id.toInt()) and (Words.userId eq userId)}
+            }
+            call.respond(
+                HttpStatusCode.OK,
+                "Word deleted"
+            )
+        } catch (e: Exception) {
+            println(e)
+            call.respond(
+                HttpStatusCode.NotFound,
+                "Word not found"
+            )
         }
     }
 }

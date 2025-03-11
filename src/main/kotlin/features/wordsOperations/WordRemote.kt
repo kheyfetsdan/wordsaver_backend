@@ -11,6 +11,13 @@ data class WordReceiveRemote(
 )
 
 @Serializable
+data class WordIdReceiveRemote(
+    val id: Int,
+    val word: String,
+    val translation: String,
+)
+
+@Serializable
 data class SuccessSaveResponse(
     val response: String
 )
