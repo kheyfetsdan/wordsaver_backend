@@ -18,6 +18,11 @@ fun Application.configureWordRouting() {
                 wordController.getWord()
             }
 
+            get("/sorted-random-word") {
+                val wordController = WordController(call)
+                wordController.getRandomSortedWord()
+            }
+
             post("/get-words-by-user") {
                 val wordController = WordController(call)
                 wordController.getWords()
@@ -37,6 +42,12 @@ fun Application.configureWordRouting() {
                 val wordController = WordController(call)
                 wordController.deleteWord()
             }
+
+            put("/word-stat/{id}") {
+                val wordController = WordController(call)
+                wordController.updateWordStatistic()
+            }
+
         }
     }
 }

@@ -18,6 +18,11 @@ data class WordIdReceiveRemote(
 )
 
 @Serializable
+data class WordIdStatReceiveRemote(
+    val success: Boolean
+)
+
+@Serializable
 data class SuccessSaveResponse(
     val response: String
 )

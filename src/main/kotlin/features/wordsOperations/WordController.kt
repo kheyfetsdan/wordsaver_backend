@@ -13,6 +13,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.wordsaver.features.database.users.Users
 import com.wordsaver.features.database.words.WordDto
+import com.wordsaver.features.database.words.WordStat
 import com.wordsaver.features.database.words.Words.addedAt
 import com.wordsaver.features.database.words.Words.failed
 import com.wordsaver.features.database.words.Words.id
@@ -21,7 +22,11 @@ import com.wordsaver.features.database.words.Words.translation
 import com.wordsaver.features.database.words.Words.word
 import io.ktor.client.utils.EmptyContent.status
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.case
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import kotlin.math.ceil
 import kotlin.random.Random
 
 class WordController(private val call: ApplicationCall) {
@@ -68,6 +73,71 @@ class WordController(private val call: ApplicationCall) {
                     "An error occurred: ${e.message}"
                 )
             }
+        }
+    }
+
+    suspend fun getRandomSortedWord() {
+        try {
+            val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+
+            val totalCount = transaction {
+                addLogger(StdOutSqlLogger)
+                Words.selectAll()
+                    .where {
+                        Words.userId eq userId
+                    }
+                    .count()
+            }
+
+            // Вычисляем треть от общего количества строк, округляя вверх
+            val limit = ceil(totalCount / 3.0).toInt()
+
+            val sortedWordQuery = transaction {
+                Words.selectAll()
+                    .where {
+                        Words.userId eq userId
+                    }
+                    .orderBy(
+                    case()
+                        .When((Words.success eq 0.0) and (Words.failed greater 0.0), intLiteral(1))
+                        .When((Words.success eq 0.0) and (Words.failed eq 0.0), intLiteral(2))
+                        .When(Words.success less Words.failed, intLiteral(3))
+                        .When(Words.success eq Words.failed, intLiteral(4))
+                        .When(Words.success greater Words.failed, intLiteral(5))
+                        .Else(intLiteral(6))
+                )
+            }
+
+            val sortedWordList = transaction { sortedWordQuery.limit(limit).toList() }
+
+            if (sortedWordList.isEmpty()) {
+                call.respond(HttpStatusCode.NotFound, "No words exist")
+            }
+            val randomIndex = Random.nextInt(sortedWordList.size)
+            val rWord = sortedWordList[randomIndex][word]
+
+            // Выполняем запрос к базе данных
+            val wordModel = transaction {
+                Words.selectAll().where {
+                    ((Words.userId eq userId) and (Words.word eq rWord))
+                }.singleOrNull()
+            }
+
+            // Если слово найдено, возвращаем его
+            if (wordModel != null) {
+                val response = WordResponseRemote(
+                    id = wordModel[id],
+                    word = wordModel[Words.word],
+                    translation = wordModel[Words.translation],
+                    failed = wordModel[Words.failed],
+                    success = wordModel[Words.success],
+                    addedAt = wordModel[Words.addedAt].toString() // Преобразуем LocalDateTime в строку
+                )
+                call.respond(response)
+            }
+
+        } catch (e: Exception) {
+            println(e)
         }
     }
 
@@ -273,4 +343,45 @@ class WordController(private val call: ApplicationCall) {
             )
         }
     }
+
+    suspend fun updateWordStatistic() {
+        val id = call.parameters["id"]?: "No ID"
+        val wordReceiveRemote = call.receive<WordIdStatReceiveRemote>()
+        val userId = Users.fetchUserId(getUserEmailFromToken()).toString()
+
+        try {
+            if (wordReceiveRemote.success) {
+                transaction {
+                    addLogger(StdOutSqlLogger)
+                    updateSingleParam(id, userId, Words.success)
+                }
+                call.respond(
+                    HttpStatusCode.OK,
+                    "Word success updated"
+                )
+            } else {
+                transaction {
+                    addLogger(StdOutSqlLogger)
+                    updateSingleParam(id, userId, Words.failed)
+                }
+                call.respond(
+                    HttpStatusCode.OK,
+                    "Word fails updated"
+                )
+            }
+
+        } catch (e: Exception) {
+            call.respond(
+                HttpStatusCode.InternalServerError,
+                "Update failed"
+            )
+        }
+    }
+
+    private fun updateSingleParam(id: String, userId: String, param: Column<Double>) =
+        Words.update({ (Words.id eq id.toInt()) and (Words.userId eq userId) }) {
+            with(SqlExpressionBuilder) {
+                it.update(param, param + 1.0)
+            }
+        }
 }
