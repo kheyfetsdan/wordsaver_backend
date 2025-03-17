@@ -1,6 +1,9 @@
 package com.wordsaver.features.database.users
 
 import com.wordsaver.features.auth.AuthConfig
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.javatime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -45,5 +48,11 @@ object Users : Table("users_main") {
         } catch (e: Exception) {
             null
         }
+    }
+
+    fun getUserEmailFromToken(call: ApplicationCall): String {
+        val principal = call.principal<JWTPrincipal>()
+        return principal?.payload?.subject
+            ?: throw IllegalStateException("No user email in token")
     }
 }

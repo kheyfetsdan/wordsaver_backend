@@ -10,9 +10,3 @@ data class WordDto(
     val success: Double,
     val addedAt: LocalDateTime = LocalDateTime.now()
 )
-
-data class WordStat(
-    val failed: Double,
-    val success: Double,
-    val addedAt: LocalDateTime = LocalDateTime.now()
-)
