@@ -14,10 +14,13 @@ import com.wordsaver.features.database.users.Users.getUserEmailFromToken
 import com.wordsaver.features.database.words.WordDto
 import com.wordsaver.features.database.words.Words.addedAt
 import com.wordsaver.features.database.words.Words.failed
+import com.wordsaver.features.database.words.Words.fetchData
+import com.wordsaver.features.database.words.Words.fetchWord
 import com.wordsaver.features.database.words.Words.id
 import com.wordsaver.features.database.words.Words.success
 import com.wordsaver.features.database.words.Words.translation
 import com.wordsaver.features.database.words.Words.updateSingleParam
+import com.wordsaver.features.database.words.Words.userId
 import com.wordsaver.features.database.words.Words.word
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -78,7 +81,8 @@ class WordController(private val call: ApplicationCall) {
             val randomIndex = Random.nextInt(sortedWordList.size)
             val rWord = sortedWordList[randomIndex][word]
 
-            val wordModel = Words.fetchData(condition = (Words.userId eq userId) and (Words.word eq rWord)).singleOrNull()
+            val wordModel =
+                Words.fetchData(condition = (Words.userId eq userId) and (Words.word eq rWord)).singleOrNull()
 
             if (wordModel != null) {
                 call.respond(
@@ -267,17 +271,34 @@ class WordController(private val call: ApplicationCall) {
     }
 
     suspend fun quiz() {
-        val quizReceiveRemote = call.receive<QuizRequest>()
+        try {
+            val quizReceiveRemote = call.receive<QuizRequest>()
+            val checkWordsCount = transaction { fetchData(condition = (Words.userId eq userId)).toList() }
+            println(checkWordsCount.size)
 
-        val wordModel = wordOperation.fetchRandomRow(quizReceiveRemote.previousWord)
+            if (checkWordsCount.size < 5) {
+                call.respond(HttpStatusCode.NoContent, "No words for quiz")
+            } else {
+                val wordModel = wordOperation.fetchRandomRow(quizReceiveRemote.previousWord, userId)!!
 
-        if (wordModel != null) {
-            val response = QuizResponse(
-                word = wordModel[Words.word],
-                trueTranslation = wordModel[Words.translation],
-                translation1 = Words
-            )
-            call.respond(response)
+                val translationList = transaction { wordOperation.fetchRandomThreeRowWithExclude(
+                    quizReceiveRemote.previousWord,
+                    wordModel[word], userId
+                ) }
+
+                println(translationList.size)
+
+                /*val response = QuizResponse(
+                    word = wordModel[Words.word],
+                    trueTranslation = wordModel[Words.translation],
+                    translation1 = translationList[0][translation],
+                    translation2 = translationList[1][translation],
+                    translation3 = translationList[2][translation],
+                )
+                call.respond(response)*/
+            }
+        } catch (e: Exception) {
+            println(e)
         }
     }
 }

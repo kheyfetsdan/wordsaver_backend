@@ -46,14 +46,15 @@ object Words : Table("words") {
 
     fun fetchData(
         columns: List<Column<*>> = this.columns,
-        condition: Op<Boolean>
+        condition: Op<Boolean>,
+        limit: Int = 1000
     ): Query {
         return transaction {
             addLogger(StdOutSqlLogger)
             Words.select(columns)
                 .where {
                     condition
-                }
+                }.limit(limit)
         }
     }
 
