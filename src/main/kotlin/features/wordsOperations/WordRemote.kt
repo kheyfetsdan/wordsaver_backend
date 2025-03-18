@@ -64,6 +64,7 @@ data class QuizRequest(
 
 @Serializable
 data class QuizResponse(
+    val id: Int,
     val word: String,
     val trueTranslation: String,
     val translation1: String,

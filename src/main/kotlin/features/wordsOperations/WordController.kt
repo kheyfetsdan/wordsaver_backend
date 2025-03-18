@@ -81,8 +81,7 @@ class WordController(private val call: ApplicationCall) {
             val randomIndex = Random.nextInt(sortedWordList.size)
             val rWord = sortedWordList[randomIndex][word]
 
-            val wordModel =
-                Words.fetchData(condition = (Words.userId eq userId) and (Words.word eq rWord)).singleOrNull()
+            val wordModel = transaction { Words.fetchData(condition = (Words.userId eq userId) and (Words.word eq rWord)).singleOrNull() }
 
             if (wordModel != null) {
                 call.respond(
@@ -168,7 +167,7 @@ class WordController(private val call: ApplicationCall) {
     suspend fun getWordById() {
         val id = call.parameters["id"] ?: "No ID"
 
-        val word = Words.fetchData(condition = ((Words.userId eq userId) and (Words.id eq id.toInt()))).singleOrNull()
+        val word = transaction { Words.fetchData(condition = ((Words.userId eq userId) and (Words.id eq id.toInt()))).singleOrNull() }
 
         if (word != null) {
             call.respond(
@@ -258,10 +257,6 @@ class WordController(private val call: ApplicationCall) {
                     "Word fails updated"
                 )
             }
-
-            transaction {
-                Words.select(Words.word)
-            }
         } catch (e: Exception) {
             call.respond(
                 HttpStatusCode.InternalServerError,
@@ -276,10 +271,11 @@ class WordController(private val call: ApplicationCall) {
             val checkWordsCount = transaction { fetchData(condition = (Words.userId eq userId)).toList() }
             println(checkWordsCount.size)
 
-            if (checkWordsCount.size < 5) {
-                call.respond(HttpStatusCode.NoContent, "No words for quiz")
+            if (checkWordsCount.size < 4) {
+                call.respond(HttpStatusCode.NoContent, "Not enough words for quiz")
             } else {
                 val wordModel = wordOperation.fetchRandomRow(quizReceiveRemote.previousWord, userId)!!
+                println(wordModel[word])
 
                 val translationList = transaction { wordOperation.fetchRandomThreeRowWithExclude(
                     quizReceiveRemote.previousWord,
@@ -288,14 +284,15 @@ class WordController(private val call: ApplicationCall) {
 
                 println(translationList.size)
 
-                /*val response = QuizResponse(
+                val response = QuizResponse(
+                    id = wordModel[Words.id],
                     word = wordModel[Words.word],
                     trueTranslation = wordModel[Words.translation],
-                    translation1 = translationList[0][translation],
-                    translation2 = translationList[1][translation],
-                    translation3 = translationList[2][translation],
+                    translation1 = translationList[0],
+                    translation2 = translationList[1],
+                    translation3 = translationList[2],
                 )
-                call.respond(response)*/
+                call.respond(response)
             }
         } catch (e: Exception) {
             println(e)

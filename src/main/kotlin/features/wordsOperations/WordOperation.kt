@@ -17,7 +17,7 @@ class WordOperation {
     fun fetchRandomRow(previousWord: String, userId: String): ResultRow? {
         val randomWord = transaction {
             Words.fetchData(
-                listOf(Words.word),
+                listOf(Words.word, Words.id),
                 ((Words.userId eq userId) and (Words.word neq previousWord))
             ).toList()
         }
@@ -28,19 +28,17 @@ class WordOperation {
         return transaction { Words.fetchData(condition = ((Words.userId eq userId) and (Words.word eq rWord))).singleOrNull() }
     }
 
-    fun fetchRandomThreeRowWithExclude(previousWord: String, currentWord: String, userId: String): List<ResultRow> {
+    fun fetchRandomThreeRowWithExclude(previousWord: String, currentWord: String, userId: String): List<String> {
         val randomWord = transaction {
             Words.fetchData(
-                listOf(Words.word, translation),
+                listOf(translation),
                 ((Words.userId eq userId) and (Words.word neq previousWord) and (Words.word neq currentWord))
             ).toList()
         }
 
-        val randomIndex = Random.nextInt(randomWord.size)
-        val rWord = randomWord[randomIndex][word]
+        val shuffledList = randomWord.shuffled()
 
-        val threeRow = transaction { Words.fetchData(condition = ((Words.userId eq userId) and (Words.word eq rWord)), limit = 3) }.toList()
-        return threeRow
+        return listOf(shuffledList[0][translation], shuffledList[1][translation], shuffledList[2][translation])
 
     }
 
