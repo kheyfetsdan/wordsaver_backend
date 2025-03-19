@@ -47,8 +47,8 @@ class WordController(private val call: ApplicationCall) {
                 try {
                     insertIntoTable(
                         Words, WordDto(
-                            word = wordReceiveRemote.word,
-                            translation = wordReceiveRemote.translation,
+                            word = wordReceiveRemote.word.lowercase().replaceFirstChar { it.uppercase() },
+                            translation = wordReceiveRemote.translation.lowercase().replaceFirstChar { it.uppercase() },
                             userId = userId,
                             failed = 0.0,
                             success = 0.0
@@ -73,7 +73,8 @@ class WordController(private val call: ApplicationCall) {
 
     suspend fun getRandomSortedWord() {
         try {
-            val sortedWordList = Words.fetchRandomSortedWord()
+            val sortedWordList = Words.fetchRandomSortedWord(userId)
+            println(sortedWordList)
 
             if (sortedWordList.isEmpty()) {
                 call.respond(HttpStatusCode.NotFound, "No words exist")
@@ -269,10 +270,9 @@ class WordController(private val call: ApplicationCall) {
         try {
             val quizReceiveRemote = call.receive<QuizRequest>()
             val checkWordsCount = transaction { fetchData(condition = (Words.userId eq userId)).toList() }
-            println(checkWordsCount.size)
 
             if (checkWordsCount.size < 4) {
-                call.respond(HttpStatusCode.NoContent, "Not enough words for quiz")
+                call.respond(HttpStatusCode.PreconditionFailed, "Not enough words for quiz")
             } else {
                 val wordModel = wordOperation.fetchRandomRow(quizReceiveRemote.previousWord, userId)!!
                 println(wordModel[word])

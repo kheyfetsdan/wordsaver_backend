@@ -28,7 +28,7 @@ object Words : Table("words") {
             transaction {
                 addLogger(StdOutSqlLogger)
                 val wordModel = Words.selectAll().where {
-                    (word eq (userWord.lowercase())) and (this@Words.userId eq (userId))
+                    (word.lowerCase() eq (userWord.lowercase())) and (this@Words.userId eq (userId))
                 }
                     .single()
                 WordDto(
@@ -65,10 +65,11 @@ object Words : Table("words") {
             }
         }
 
-    fun fetchRandomSortedWord(): List<ResultRow> {
+    fun fetchRandomSortedWord(userId: String): List<ResultRow> {
         val totalCount = transaction {
             fetchData(condition = Words.userId eq userId).count()
         }
+        println(totalCount)
         val limit = ceil(totalCount / 3.0).toInt()
 
         val sortedWordQuery = transaction {
