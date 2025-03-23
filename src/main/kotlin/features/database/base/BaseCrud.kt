@@ -25,12 +25,3 @@ inline fun <reified T : Any> insertIntoTable(table: Table, dto: T) {
     }
 }
 
-fun <T> selectFromTable(table: Table, mapper: (ResultRow) -> T): List<T> {
-    return transaction {
-        table.selectAll().map { row ->
-            mapper(row) // Применяем лямбду для преобразования ResultRow в DTO
-        }
-    }
-}
-
-
