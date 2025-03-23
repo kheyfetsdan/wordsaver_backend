@@ -9,7 +9,7 @@ object AuthConfig {
     private const val SECRET = "your-secret-key" // В продакшене должен храниться в защищенном месте
     private const val ISSUER = "wordsaver-auth"
     private val algorithm = Algorithm.HMAC256(SECRET)
-    private const val TOKEN_LIFETIME = 24L * 60L * 60L * 1000L // 24 часа
+    private const val TOKEN_LIFETIME = 30L * 24L * 60L * 60L * 1000L // 30 дней
 
     fun generateToken(userId: String): String = JWT.create()
         .withSubject(userId)
