@@ -11,6 +11,7 @@ import com.wordsaver.plugins.configureSecurity
 import com.wordsaver.plugins.configureStatusPages
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.netty.*
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.exists
@@ -43,7 +44,7 @@ fun main() {
         }
     }
 
-    embeddedServer(CIO, port = System.getenv("PORT").toInt()) {
+    embeddedServer(Netty, port = System.getenv("PORT").toInt()) {
         configureStatusPages()
         configureSecurity()
         configureRouting()
