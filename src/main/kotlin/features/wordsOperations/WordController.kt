@@ -9,6 +9,7 @@ import io.ktor.server.response.*
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.auth0.jwt.exceptions.JWTVerificationException
+import com.wordsaver.features.base.BaseController
 import com.wordsaver.features.database.users.Users
 import com.wordsaver.features.database.users.Users.getUserEmailFromToken
 import com.wordsaver.features.database.words.WordDto
@@ -26,7 +27,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import kotlin.random.Random
 
-class WordController(private val call: ApplicationCall) {
+class WordController(call: ApplicationCall) : BaseController(call){
 
     private val userId = Users.fetchUserId(getUserEmailFromToken(call)).toString()
     private val wordOperation = WordOperation()
@@ -34,7 +35,7 @@ class WordController(private val call: ApplicationCall) {
     suspend fun saveNewWord() {
         try {
 
-            val wordReceiveRemote = call.receive<WordReceiveRemote>()
+            val wordReceiveRemote = receiveRequest<WordReceiveRemote>()
 
             val searchedWord = Words.fetchWord(
                 userWord = wordReceiveRemote.word,
@@ -42,7 +43,7 @@ class WordController(private val call: ApplicationCall) {
             )
 
             if (searchedWord != null) {
-                call.respond(HttpStatusCode.Conflict, "Word already exists")
+                respondError(HttpStatusCode.Conflict, "Word already exists")
             } else {
                 try {
                     insertIntoTable(
@@ -54,16 +55,16 @@ class WordController(private val call: ApplicationCall) {
                             success = 0.0
                         )
                     )
-                    call.respond(SuccessSaveResponse("Saved"))
+                    respond(SuccessSaveResponse("Saved"))
                 } catch (e: ExposedSQLException) {
-                    call.respond(HttpStatusCode.Conflict, "Word already exists")
+                    respondError(HttpStatusCode.Conflict, "Word already exists")
                 }
             }
         } catch (e: Exception) {
             when (e) {
                 is IllegalStateException,
                 is JWTVerificationException -> throw e // Пробрасываем дальше для обработки в StatusPages
-                else -> call.respond(
+                else -> respondError(
                     HttpStatusCode.InternalServerError,
                     "An error occurred: ${e.message}"
                 )
@@ -74,7 +75,6 @@ class WordController(private val call: ApplicationCall) {
     suspend fun getRandomSortedWord() {
         try {
             val sortedWordList = Words.fetchRandomSortedWord(userId)
-            println(sortedWordList)
 
             if (sortedWordList.isEmpty()) {
                 call.respond(HttpStatusCode.NotFound, "No words exist")
