@@ -42,4 +42,5 @@ dependencies {
     implementation("at.favre.lib:bcrypt:0.10.2")
     implementation("org.jetbrains.exposed:exposed-java-time:${libs.versions.exposed.get()}")
     implementation("io.ktor:ktor-server-status-pages:3.0.3")
+    implementation("com.zaxxer:HikariCP:6.3.0")
 }
