@@ -18,6 +18,10 @@ repositories {
     mavenCentral()
 }
 
+tasks {
+    create("stage").dependsOn("installDist")
+}
+
 dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.serialization.kotlinx.json)
