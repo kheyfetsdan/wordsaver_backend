@@ -43,7 +43,7 @@ fun main() {
         }
     }
 
-    embeddedServer(CIO, port = System.getenv("PORT").toInt(), host = "0.0.0.0") {
+    embeddedServer(CIO, port = System.getenv("PORT").toInt()) {
         configureStatusPages()
         configureSecurity()
         configureRouting()
