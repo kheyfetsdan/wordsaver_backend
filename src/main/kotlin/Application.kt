@@ -56,6 +56,8 @@ fun main() {
             println("Таблица '${Words.tableName}' уже существует.")
         }
     }
+    println("POOOOOORT")
+    println(System.getenv("PORT").toInt())
 
     embeddedServer(Netty, port = System.getenv("PORT").toInt()) {
         configureStatusPages()
